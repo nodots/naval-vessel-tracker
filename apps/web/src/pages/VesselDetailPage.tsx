@@ -18,6 +18,7 @@ import { ApiError, fetchVessel } from "../api";
 import { STATUS_COLORS, ageLabel, statusLabel, vesselTypeLabel } from "../format";
 
 const BASEMAP_STYLE = "https://tiles.openfreemap.org/styles/dark";
+const REFRESH_INTERVAL_MS = 15_000;
 
 export function VesselDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -31,15 +32,33 @@ export function VesselDetailPage() {
     if (!id) return;
     setVessel(null);
     setError(null);
-    const controller = new AbortController();
-    fetchVessel(id, controller.signal)
-      .then(setVessel)
-      .catch((err: unknown) => {
-        if (err instanceof DOMException && err.name === "AbortError") return;
-        if (err instanceof ApiError) setError({ status: err.status, message: err.message });
-        else setError({ status: 0, message: err instanceof Error ? err.message : String(err) });
-      });
-    return () => controller.abort();
+    let cancelled = false;
+    let inflight: AbortController | null = null;
+
+    const refresh = () => {
+      inflight?.abort();
+      inflight = new AbortController();
+      fetchVessel(id, inflight.signal)
+        .then((data) => {
+          if (cancelled) return;
+          setVessel(data);
+          setError(null);
+        })
+        .catch((err: unknown) => {
+          if (cancelled) return;
+          if (err instanceof DOMException && err.name === "AbortError") return;
+          if (err instanceof ApiError) setError({ status: err.status, message: err.message });
+          else setError({ status: 0, message: err instanceof Error ? err.message : String(err) });
+        });
+    };
+
+    refresh();
+    const intervalId = setInterval(refresh, REFRESH_INTERVAL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(intervalId);
+      inflight?.abort();
+    };
   }, [id]);
 
   useEffect(() => {
@@ -70,7 +89,9 @@ export function VesselDetailPage() {
       map.remove();
       mapRef.current = null;
     };
-  }, [vessel?.currentPositionDetail]);
+    // Scalar deps so 15s polling doesn't tear down and rebuild the map when
+    // the position object is re-fetched but the actual lat/lon/status haven't moved.
+  }, [vessel?.currentPositionDetail?.lat, vessel?.currentPositionDetail?.lon, vessel?.currentPositionDetail?.status]);
 
   if (error) {
     return (

@@ -15,6 +15,7 @@ import { fetchMapVessels } from "../api";
 import { STATUS_COLORS, ageLabel, statusLabel, vesselTypeLabel } from "../format";
 
 const BASEMAP_STYLE = "https://tiles.openfreemap.org/styles/dark";
+const REFRESH_INTERVAL_MS = 15_000;
 
 function createMarkerEl(status: MapVesselMarker["status"]): HTMLDivElement {
   const el = document.createElement("div");
@@ -52,14 +53,33 @@ export function MapPage() {
   }, []);
 
   useEffect(() => {
-    const controller = new AbortController();
-    fetchMapVessels(controller.signal)
-      .then(setMarkers)
-      .catch((err: unknown) => {
-        if (err instanceof DOMException && err.name === "AbortError") return;
-        setApiError(err instanceof Error ? err.message : String(err));
-      });
-    return () => controller.abort();
+    let cancelled = false;
+    let inflight: AbortController | null = null;
+
+    const refresh = () => {
+      inflight?.abort();
+      inflight = new AbortController();
+      fetchMapVessels(inflight.signal)
+        .then((data) => {
+          if (!cancelled) {
+            setMarkers(data);
+            setApiError(null);
+          }
+        })
+        .catch((err: unknown) => {
+          if (cancelled) return;
+          if (err instanceof DOMException && err.name === "AbortError") return;
+          setApiError(err instanceof Error ? err.message : String(err));
+        });
+    };
+
+    refresh();
+    const intervalId = setInterval(refresh, REFRESH_INTERVAL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(intervalId);
+      inflight?.abort();
+    };
   }, []);
 
   useEffect(() => {

@@ -14,14 +14,17 @@
     "db:seed:positions": "tsx src/db/seed-positions.ts",
     "db:seed:mmsi": "tsx src/db/seed-mmsi.ts",
     "db:seed:norway": "tsx src/db/seed-norway-vessels.ts",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "osint:sweep": "tsx src/osint/sweep.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.97.1",
     "@naval-tracker/shared": "workspace:*",
     "cors": "^2.8.5",
     "drizzle-orm": "^0.45.2",
     "express": "^4.21.1",
-    "pg": "^8.21.0"
+    "pg": "^8.21.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",

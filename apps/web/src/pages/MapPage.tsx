@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
@@ -35,6 +35,41 @@ export function MapPage() {
   const [markers, setMarkers] = useState<MapVesselMarker[]>([]);
   const [selected, setSelected] = useState<MapVesselMarker | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [selectedCountries, setSelectedCountries] = useState<Set<string>>(new Set());
+  const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set());
+
+  const distinctCountries = useMemo(
+    () => Array.from(new Set(markers.map((m) => m.country))).sort(),
+    [markers],
+  );
+  const distinctTypes = useMemo(
+    () => Array.from(new Set(markers.map((m) => m.vesselType))).sort(),
+    [markers],
+  );
+
+  const visibleMarkers = useMemo(() => {
+    if (selectedCountries.size === 0 && selectedTypes.size === 0) return markers;
+    return markers.filter(
+      (m) =>
+        (selectedCountries.size === 0 || selectedCountries.has(m.country)) &&
+        (selectedTypes.size === 0 || selectedTypes.has(m.vesselType)),
+    );
+  }, [markers, selectedCountries, selectedTypes]);
+
+  const toggleInSet = (key: string, setState: typeof setSelectedCountries) => {
+    setState((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const filtersActive = selectedCountries.size > 0 || selectedTypes.size > 0;
+  const clearFilters = () => {
+    setSelectedCountries(new Set());
+    setSelectedTypes(new Set());
+  };
 
   useEffect(() => {
     if (!mapContainer.current) return;
@@ -84,9 +119,9 @@ export function MapPage() {
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || markers.length === 0) return;
+    if (!map || visibleMarkers.length === 0) return;
     const placed: maplibregl.Marker[] = [];
-    for (const m of markers) {
+    for (const m of visibleMarkers) {
       const el = createMarkerEl(m.status);
       const marker = new maplibregl.Marker({ element: el })
         .setLngLat([m.lon, m.lat])
@@ -100,7 +135,7 @@ export function MapPage() {
     return () => {
       for (const m of placed) m.remove();
     };
-  }, [markers]);
+  }, [visibleMarkers]);
 
   return (
     <Box sx={{ position: "relative", flex: 1, minHeight: 0 }}>
@@ -111,21 +146,49 @@ export function MapPage() {
           position: "absolute",
           top: 12,
           left: 12,
-          bgcolor: "rgba(0,0,0,0.55)",
+          bgcolor: "rgba(0,0,0,0.65)",
           backdropFilter: "blur(4px)",
           border: "1px solid rgba(255,255,255,0.08)",
           borderRadius: 1,
           px: 1.25,
-          py: 0.75,
+          py: 1,
+          maxWidth: 540,
         }}
       >
-        <Typography variant="caption" color="text.secondary">
-          {apiError
-            ? `api error: ${apiError}`
-            : markers.length > 0
-              ? `${markers.length} vessels with positions`
-              : "loading…"}
-        </Typography>
+        <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: distinctCountries.length > 0 ? 0.75 : 0 }}>
+          <Typography variant="caption" color="text.secondary">
+            {apiError
+              ? `api error: ${apiError}`
+              : markers.length === 0
+                ? "loading…"
+                : filtersActive
+                  ? `${visibleMarkers.length} of ${markers.length} vessels`
+                  : `${markers.length} vessels with positions`}
+          </Typography>
+          {filtersActive && (
+            <Button size="small" variant="text" onClick={clearFilters} sx={{ py: 0, minWidth: 0, fontSize: 11 }}>
+              clear
+            </Button>
+          )}
+        </Stack>
+
+        {distinctCountries.length > 0 && (
+          <FilterRow
+            label="Country"
+            values={distinctCountries}
+            selected={selectedCountries}
+            onToggle={(v) => toggleInSet(v, setSelectedCountries)}
+          />
+        )}
+        {distinctTypes.length > 0 && (
+          <FilterRow
+            label="Type"
+            values={distinctTypes}
+            selected={selectedTypes}
+            onToggle={(v) => toggleInSet(v, setSelectedTypes)}
+            renderLabel={vesselTypeLabel}
+          />
+        )}
       </Box>
 
       <Box
@@ -239,6 +302,46 @@ function Row({ label, value }: { label: string; value: string }) {
       <Typography variant="body2" sx={{ textAlign: "right" }}>
         {value}
       </Typography>
+    </Stack>
+  );
+}
+
+function FilterRow({
+  label,
+  values,
+  selected,
+  onToggle,
+  renderLabel,
+}: {
+  label: string;
+  values: string[];
+  selected: Set<string>;
+  onToggle: (value: string) => void;
+  renderLabel?: (value: string) => string;
+}) {
+  return (
+    <Stack direction="row" alignItems="center" sx={{ flexWrap: "wrap", rowGap: 0.5 }}>
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        sx={{ mr: 0.75, minWidth: 50 }}
+      >
+        {label}
+      </Typography>
+      {values.map((v) => {
+        const isOn = selected.has(v);
+        return (
+          <Chip
+            key={v}
+            label={renderLabel ? renderLabel(v) : v}
+            size="small"
+            variant={isOn ? "filled" : "outlined"}
+            color={isOn ? "primary" : "default"}
+            onClick={() => onToggle(v)}
+            sx={{ mr: 0.5, height: 22, fontSize: 11 }}
+          />
+        );
+      })}
     </Stack>
   );
 }

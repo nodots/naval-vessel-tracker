@@ -14,6 +14,7 @@
     "db:seed:positions": "tsx src/db/seed-positions.ts",
     "db:seed:mmsi": "tsx src/db/seed-mmsi.ts",
     "db:seed:norway": "tsx src/db/seed-norway-vessels.ts",
+    "db:seed:russia": "tsx src/db/seed-russia-vessels.ts",
     "db:studio": "drizzle-kit studio",
     "osint:sweep": "tsx src/osint/sweep.ts"
   },

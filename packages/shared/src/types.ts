@@ -86,3 +86,54 @@ export type MapVesselMarker = {
   sourceType: string;
   ageMinutes: number;
 };
+
+export type CreateObservationRequest = {
+  vesselId: string;
+  observedAt: string;
+  lat: number;
+  lon: number;
+  sourceType:
+    | "manual_osint"
+    | "official_release"
+    | "news"
+    | "port_sighting"
+    | "satellite";
+  sourceName?: string;
+  sourceUrl?: string;
+  confidence: number;
+  notes?: string;
+};
+
+export type Observation = {
+  id: number;
+  vesselId: string;
+  observedAt: string;
+  lat: number | null;
+  lon: number | null;
+  speedKnots: number | null;
+  courseDeg: number | null;
+  headingDeg: number | null;
+  sourceType: string;
+  sourceName: string | null;
+  sourceUrl: string | null;
+  confidence: number;
+  notes: string | null;
+  createdAt: string;
+};
+
+export type CurrentPositionDetail = CurrentPositionSummary & {
+  sourceName: string | null;
+  summary: string | null;
+};
+
+export type VesselDetail = Vessel & {
+  currentPositionDetail?: CurrentPositionDetail;
+  observations: Observation[];
+};
+
+export type ObservationListResponse = {
+  items: Observation[];
+  total: number;
+  limit: number;
+  offset: number;
+};

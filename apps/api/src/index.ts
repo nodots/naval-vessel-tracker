@@ -2,6 +2,7 @@ import "dotenv/config";
 import cors from "cors";
 import express from "express";
 import { HEALTH_SERVICE_NAME } from "@naval-tracker/shared";
+import { adminRouter } from "./routes/admin.js";
 import { mapRouter } from "./routes/map.js";
 import { vesselsRouter } from "./routes/vessels.js";
 
@@ -19,6 +20,7 @@ app.get("/api/health", (_req, res) => {
 
 app.use("/api/vessels", vesselsRouter);
 app.use("/api/map", mapRouter);
+app.use("/api/admin", adminRouter);
 
 app.listen(PORT, () => {
   console.log(`[api] listening on http://localhost:${PORT}`);

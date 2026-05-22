@@ -72,3 +72,17 @@ export type VesselListResponse = {
   limit: number;
   offset: number;
 };
+
+export type MapVesselMarker = {
+  vesselId: string;
+  name: string;
+  country: string;
+  vesselType: string;
+  lat: number;
+  lon: number;
+  observedAt: string;
+  confidence: number;
+  status: TrackStatus;
+  sourceType: string;
+  ageMinutes: number;
+};

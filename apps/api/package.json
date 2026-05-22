@@ -11,6 +11,7 @@
     "db:generate": "drizzle-kit generate && node scripts/fix-postgis-types.mjs",
     "db:migrate": "tsx src/db/migrate.ts",
     "db:seed": "tsx src/db/seed.ts",
+    "db:seed:positions": "tsx src/db/seed-positions.ts",
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {

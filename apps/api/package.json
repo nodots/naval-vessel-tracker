@@ -13,6 +13,7 @@
     "db:seed": "tsx src/db/seed.ts",
     "db:seed:positions": "tsx src/db/seed-positions.ts",
     "db:seed:mmsi": "tsx src/db/seed-mmsi.ts",
+    "db:seed:norway": "tsx src/db/seed-norway-vessels.ts",
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {

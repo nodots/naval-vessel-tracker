@@ -4,11 +4,12 @@ import { ingestMessage } from "./services/ingest.js";
 import { recomputeForVessels } from "./services/recompute.js";
 import { finishRun, startRun, type RunStats } from "./services/runs.js";
 import { AisStreamSource } from "./sources/aisstream.js";
+import { BarentsWatchSource } from "./sources/barentswatch.js";
 import { MockAisSource } from "./sources/mock.js";
 import type { AisSource } from "./sources/types.js";
 
 const POLL_INTERVAL_MS = Number(process.env.POLL_INTERVAL_MS ?? 30_000);
-const AISSTREAM_ENABLED = process.env.AISSTREAM_ENABLED === "true";
+const AIS_SOURCE = (process.env.AIS_SOURCE ?? "mock").toLowerCase();
 
 let stopping = false;
 let currentSource: AisSource | null = null;
@@ -25,20 +26,37 @@ async function loadCuratedMmsis(): Promise<string[]> {
 }
 
 async function buildSource(): Promise<AisSource> {
-  if (!AISSTREAM_ENABLED) {
-    console.log("[worker] AISSTREAM_ENABLED is not true — using mock source");
+  if (AIS_SOURCE === "mock") {
+    console.log("[worker] using mock AIS source");
     return new MockAisSource();
   }
-  const apiKey = process.env.AISSTREAM_API_KEY;
-  if (!apiKey) {
-    throw new Error("AISSTREAM_ENABLED=true but AISSTREAM_API_KEY is not set");
+
+  if (AIS_SOURCE === "aisstream") {
+    const apiKey = process.env.AISSTREAM_API_KEY;
+    if (!apiKey) {
+      throw new Error("AIS_SOURCE=aisstream requires AISSTREAM_API_KEY");
+    }
+    const mmsiAllowlist = await loadCuratedMmsis();
+    if (mmsiAllowlist.length === 0) {
+      throw new Error("aisstream source needs curated MMSIs but vessels.mmsi is empty");
+    }
+    console.log(`[worker] using aisstream.io (filter: ${mmsiAllowlist.length} MMSIs)`);
+    return new AisStreamSource(apiKey, mmsiAllowlist);
   }
-  const mmsiAllowlist = await loadCuratedMmsis();
-  if (mmsiAllowlist.length === 0) {
-    throw new Error("aisstream source needs curated MMSIs but vessels.mmsi is empty");
+
+  if (AIS_SOURCE === "barentswatch") {
+    const clientId = process.env.BARENTSWATCH_CLIENT_ID;
+    const clientSecret = process.env.BARENTSWATCH_CLIENT_SECRET;
+    if (!clientId || !clientSecret) {
+      throw new Error(
+        "AIS_SOURCE=barentswatch requires BARENTSWATCH_CLIENT_ID and BARENTSWATCH_CLIENT_SECRET",
+      );
+    }
+    console.log("[worker] using barentswatch.no live AIS (Norwegian waters)");
+    return new BarentsWatchSource(clientId, clientSecret);
   }
-  console.log(`[worker] using aisstream.io source (filter: ${mmsiAllowlist.length} MMSIs)`);
-  return new AisStreamSource(apiKey, mmsiAllowlist);
+
+  throw new Error(`unknown AIS_SOURCE: ${AIS_SOURCE} (expected mock|aisstream|barentswatch)`);
 }
 
 async function runOneTick(source: AisSource): Promise<void> {

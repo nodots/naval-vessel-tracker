@@ -26,3 +26,49 @@ export type VesselType =
   | "intelligence_ship"
   | "support_ship"
   | "other";
+
+export type CurrentPositionSummary = {
+  lat: number;
+  lon: number;
+  observedAt: string;
+  sourceType: SourceType;
+  confidence: number;
+  status: TrackStatus;
+  ageMinutes: number;
+};
+
+export type VesselListItem = {
+  id: string;
+  name: string;
+  country: string;
+  vesselType: string;
+  className?: string;
+  pennantNumber?: string;
+  mmsi?: string;
+  currentPosition?: CurrentPositionSummary;
+};
+
+export type Vessel = VesselListItem & {
+  navy?: string;
+  imo?: string;
+  callSign?: string;
+  homePort?: string;
+  active: boolean;
+  notes?: string;
+};
+
+export type VesselListQuery = {
+  q?: string;
+  country?: string;
+  type?: string;
+  status?: TrackStatus;
+  limit?: number;
+  offset?: number;
+};
+
+export type VesselListResponse = {
+  items: VesselListItem[];
+  total: number;
+  limit: number;
+  offset: number;
+};

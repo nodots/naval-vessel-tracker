@@ -10,10 +10,15 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@naval-tracker/shared": "workspace:*"
+    "@naval-tracker/shared": "workspace:*",
+    "dotenv": "^17.4.2",
+    "pg": "^8.21.0",
+    "ws": "^8.20.1"
   },
   "devDependencies": {
     "@types/node": "^22.10.5",
+    "@types/pg": "^8.20.0",
+    "@types/ws": "^8.18.1",
     "tsx": "^4.19.2",
     "typescript": "^5.6.3"
   }
